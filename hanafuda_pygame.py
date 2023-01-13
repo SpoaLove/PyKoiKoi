@@ -72,15 +72,16 @@ class Koikoi:
         self.game_state = KoikoiGameState.CHOOSE_HAND
         self.choosen_card = None
         self.top_deck_card = None
-        self.popup_flag = False
+        self.koikoi_menu_flag = False
+        self.agari_popup_flag = False
         
         
     def sort_piles(self):
         self.player_hands[0].sort(key=lambda card_sprite: card_sprite.card.month)
         self.player_hands[1].sort(key=lambda card_sprite: card_sprite.card.month)
         self.field.sort(key=lambda card_sprite: card_sprite.card.month)
-        self.player_point_piles[0].sort(key=lambda card_sprite: card_sprite.card.month)
-        self.player_point_piles[1].sort(key=lambda card_sprite: card_sprite.card.month)
+        self.player_point_piles[0].sort(key=lambda card: card.month)
+        self.player_point_piles[1].sort(key=lambda card: card.month)
     
     def display_field(self):
         render_group = pygame.sprite.RenderPlain()
@@ -136,8 +137,15 @@ class Koikoi:
                     pos = ( (i-top_row_len) * (90 + 10) + field_x2, int(display_height // 2) + 80)
                 card_sprite.set_pos(pos)
                 render_group.add(card_sprite)
-        if self.popup_flag:
-            render_group.add(popup)
+        if self.koikoi_menu_flag:
+            render_group.add(koikoi_menu_popup)
+        if self.agari_popup_flag:
+            points = self.player_yaku_points[self.current_player] * (2 if self.player_koikoied[self.current_opponent] else 1)
+            agari_popup = PopupSprite([
+                f'Player {self.current_player} won!', 
+                f'Points: {points}',
+                f'Yaku:{self.player_yakus[self.current_player]}'])
+            render_group.add(agari_popup)
         render_group.draw(self.display)
         pygame.display.update()
 
@@ -197,6 +205,8 @@ class Koikoi:
         if yaku_point != self.player_yaku_points[self.current_player]:
             print(f'Player {self.current_player+1}',yaku_point, yakus)
             self.game_state = KoikoiGameState.CHOOSE_KOIKOI
+            self.koikoi_menu_flag = True
+            return
         self.player_yaku_points[self.current_player], self.player_yakus[self.current_player] = yaku_point, yakus
         self.current_player, self.current_opponent = self.current_opponent, self.current_player
 
@@ -247,6 +257,7 @@ class Koikoi:
 
                     if self.game_state == KoikoiGameState.CHOOSE_FIELD_HAND:
                         self.game_state = KoikoiGameState.DRAW_CARD
+
                     elif self.game_state == KoikoiGameState.CHOOSE_FIELD_DRAW:
                         self.game_state = KoikoiGameState.CHOOSE_HAND
                         self.switch_player()
@@ -261,27 +272,33 @@ class Koikoi:
             self.top_deck_card = None
             if self.game_state == KoikoiGameState.CHOOSE_HAND:
                 self.switch_player()
+
         elif self.game_state == KoikoiGameState.CHOOSE_KOIKOI:
-            self.popup_flag = True
+            self.koikoi_menu_flag = True
             koikoi_rect = pygame.rect.Rect(475, 290, 250, 65)
             agari_rect = pygame.rect.Rect(500, 440, 200, 80)
             print(mouse_pos)
             if koikoi_rect.collidepoint(mouse_pos):
                 print('KOIKOI')
-                self.player_koikoied[self.current_opponent] = True
-                self.popup_flag = False
-                self.game_state = self.game_state == KoikoiGameState.CHOOSE_HAND
+                self.player_koikoied[self.current_player] = True
+                self.koikoi_menu_flag = False
+                self.player_yaku_points[self.current_player], self.player_yakus[self.current_player] = check_all_yakus(self.player_point_piles[self.current_player])
+                self.current_player, self.current_opponent = self.current_opponent, self.current_player
+                self.game_state = KoikoiGameState.CHOOSE_HAND
             elif agari_rect.collidepoint(mouse_pos):
                 print('AGARI')
-                self.popup_flag = False
-                self.game_state = self.game_state == KoikoiGameState.GAME_END
+                self.koikoi_menu_flag = False
+                self.player_yaku_points[self.current_player], self.player_yakus[self.current_player] = check_all_yakus(self.player_point_piles[self.current_player])
+                self.agari_popup_flag = True
+                self.game_state = KoikoiGameState.GAME_END
                 
 
         elif self.game_state == KoikoiGameState.GAME_END:
-            points = self.player_yaku_points[self.current_opponent] * (2 if self.player_koikoied[self.current_player] else 1)
-            print(f'Player {self.current_opponent+1} won!')
-            print('Points:', points)
-            print('Yaku:', self.player_yakus[self.current_opponent])
+            pass
+            # points = self.player_yaku_points[self.current_player] * (2 if self.player_koikoied[self.current_opponent] else 1)
+            # print(f'Player {self.current_player+1} won!')
+            # print('Points:', points)
+            # print('Yaku:', self.player_yakus[self.current_player])
             # TODO: make window for game end
 
 class Background(pygame.sprite.Sprite):
@@ -302,21 +319,24 @@ white = (255,255,255)
 clock = pygame.time.Clock()
 
 class PopupSprite(pygame.sprite.Sprite):
-    def __init__(self) -> None:
+    def __init__(self, options) -> None:
         super().__init__()
         popupSurf = pygame.Surface((int(display_width * 0.5), int(display_height * 0.5)))
         popupSurf.fill((255,255,255,125))
-        options = ['Koikoi', 'Agari']
+        # options = ['Koikoi', 'Agari']
+        text_y_shifts = [-1, 1, 0]
+        text_font_sizes = [100,100,25]
         for i in range(len(options)):
             pygame.font.get_default_font()
-            font = pygame.font.SysFont(None, 100)
+            font = pygame.font.SysFont(None, text_font_sizes[i])
             textSurf = font.render(options[i], 1, (255,0,0))
             textRect = textSurf.get_rect()
             textRect.centerx = display_width * 0.25
             textRect.centerx = display_width * 0.25
-            textRect.centery = display_height * 0.25 + pygame.font.Font.get_linesize(font) * (1 if i else -1)
+            textRect.centery = display_height * 0.25 + pygame.font.Font.get_linesize(font) * text_y_shifts[i]
+
             popupSurf.blit(textSurf, textRect)
-            print(options[i], textRect)
+            # print(options[i], textRect)
         popupRect = popupSurf.get_rect()
         popupRect.centerx = display_width * 0.5
         popupRect.centery = display_height * 0.5
@@ -324,8 +344,8 @@ class PopupSprite(pygame.sprite.Sprite):
         self.rect = popupRect
 
 
-popup = PopupSprite()
-koikoi_game.popup_flag = False
+koikoi_menu_popup = PopupSprite(['Koikoi', 'Agari'])
+
 
 crashed = False
 while not crashed:
@@ -337,7 +357,7 @@ while not crashed:
             koikoi_game.mouse_event(mouse_pos)
         # elif event.type == pygame.KEYDOWN:
         #     koikoi_game.game_state = KoikoiGameState.CHOOSE_KOIKOI
-        #     koikoi_game.popup_flag = not koikoi_game.popup_flag
+        #     koikoi_game.koikoi_menu_flag = not koikoi_game.koikoi_menu_flag
             
     
     gameDisplay.fill(white)
