@@ -51,6 +51,11 @@ class KoikoiGameState(Enum):
     CHOOSE_FIELD_DRAW = 5
     CHOOSE_KOIKOI = 6
     GAME_END = 7
+    AI = 8
+    AI_2 = 9
+    AI_3 = 10
+    AI_4 = 11
+    AI_GAME_END = 7
 
 class Koikoi:
     PLAYER_1 = 0
@@ -114,16 +119,12 @@ class Koikoi:
 
         # player 2 hand
         player_2_x = int((display_width - len(self.player_hands[self.current_opponent]) * 100) // 2)
-        # for i, card_sprite in enumerate(self.player_hands[self.current_opponent]):
-        #     pos = (i * (90 + 10) + player_2_x, 90)
-        #     card_sprite.set_pos(pos)
-        #     render_group.add(card_sprite)
+
         for i in range(len(self.player_hands[self.current_opponent])):
             pos = (i * (90 + 10) + player_2_x, 90)
             card_sprite = CardSprite(None, pos)
             render_group.add(card_sprite)
 
-        
         # player 2 point pile
         for i, card in enumerate(self.player_point_piles[self.current_opponent]):
             pos = (i * (16) + 50, int(display_height//2)-150)
@@ -152,11 +153,13 @@ class Koikoi:
         if self.koikoi_menu_flag:
             render_group.add(koikoi_menu_popup)
         if self.agari_popup_flag:
-            points = self.player_yaku_points[self.current_player] * (2 if self.player_koikoied[self.current_opponent] else 1)
+            winner = self.game_state == 1 if KoikoiGameState.AI_GAME_END else 0
+            looser = self.game_state == 0 if KoikoiGameState.AI_GAME_END else 1
+            points = self.player_yaku_points[winner] * (2 if self.player_koikoied[looser] else 1)
             agari_popup = PopupSprite([
-                f'Player {self.current_player + 1} won!', 
+                f'Player {winner + 1} won!', 
                 f'Points: {points}',
-                f'Yaku:{self.player_yakus[self.current_player]}'])
+                f'Yaku:{self.player_yakus[winner]}'])
             render_group.add(agari_popup)
         render_group.draw(self.display)
         pygame.display.update()
@@ -210,7 +213,7 @@ class Koikoi:
             self.game_state = KoikoiGameState.DRAW_CARD
 
         elif self.game_state == KoikoiGameState.DREW_CARD:
-            self.game_state = KoikoiGameState.CHOOSE_HAND
+            self.switch_player()
             
     def switch_player(self):
         yaku_point, yakus = check_all_yakus(self.player_point_piles[self.current_player])
@@ -220,10 +223,11 @@ class Koikoi:
             self.koikoi_menu_flag = True
             return
         self.player_yaku_points[self.current_player], self.player_yakus[self.current_player] = yaku_point, yakus
-        self.current_player, self.current_opponent = self.current_opponent, self.current_player
-
+        self.game_state = KoikoiGameState.AI
+        # self.current_player, self.current_opponent = self.current_opponent, self.current_player
 
     def mouse_event(self, mouse_pos):
+        print(self.game_state)
         if self.game_state == KoikoiGameState.CHOOSE_HAND:
             # initialize choosen id as None
             choosen_hand_card_id = None
@@ -271,7 +275,6 @@ class Koikoi:
                         self.game_state = KoikoiGameState.DRAW_CARD
 
                     elif self.game_state == KoikoiGameState.CHOOSE_FIELD_DRAW:
-                        self.game_state = KoikoiGameState.CHOOSE_HAND
                         self.switch_player()
         
         elif self.game_state == KoikoiGameState.DRAW_CARD:
@@ -295,8 +298,8 @@ class Koikoi:
                 self.player_koikoied[self.current_player] = True
                 self.koikoi_menu_flag = False
                 self.player_yaku_points[self.current_player], self.player_yakus[self.current_player] = check_all_yakus(self.player_point_piles[self.current_player])
-                self.current_player, self.current_opponent = self.current_opponent, self.current_player
-                self.game_state = KoikoiGameState.CHOOSE_HAND
+                # self.current_player, self.current_opponent = self.current_opponent, self.current_player
+                self.game_state = KoikoiGameState.AI
             elif agari_rect.collidepoint(mouse_pos):
                 print('AGARI')
                 self.koikoi_menu_flag = False
@@ -304,7 +307,6 @@ class Koikoi:
                 self.agari_popup_flag = True
                 self.game_state = KoikoiGameState.GAME_END
                 
-
         elif self.game_state == KoikoiGameState.GAME_END:
             pass
             # points = self.player_yaku_points[self.current_player] * (2 if self.player_koikoied[self.current_opponent] else 1)
@@ -312,6 +314,64 @@ class Koikoi:
             # print('Points:', points)
             # print('Yaku:', self.player_yakus[self.current_player])
             # TODO: make window for game end
+        elif self.game_state == KoikoiGameState.AI:
+            # pick random hand
+            self.top_deck_card = random.choice(self.player_hands[self.current_opponent])
+            self.player_hands[self.current_opponent].remove(self.top_deck_card)
+            self.game_state = KoikoiGameState.AI_2
+
+        elif self.game_state == KoikoiGameState.AI_2:
+            # pygame.time.delay(1000)
+            # take if hand match
+            valid_field_card_ids = [
+                    id for id, card_sprite in enumerate(self.field)
+                    if card_sprite.card.month == self.top_deck_card.card.month
+            ]
+            if valid_field_card_ids:
+                random_field_card = self.field[random.choice(valid_field_card_ids)]
+                self.field.remove(random_field_card)
+                self.player_point_piles[self.current_opponent].append(self.top_deck_card.card)
+                self.player_point_piles[self.current_opponent].append(random_field_card.card)
+            else:
+                self.field.append(self.top_deck_card)
+            self.top_deck_card = None
+            self.game_state = KoikoiGameState.AI_3
+        elif self.game_state == KoikoiGameState.AI_3:
+            # pygame.time.delay(1000)
+            self.top_deck_card, self.deck =  self.deck[0], self.deck[1:]
+            # pygame.display.flip()
+            self.game_state = KoikoiGameState.AI_4
+        elif self.game_state == KoikoiGameState.AI_4:
+            # pygame.time.delay(1000)
+            valid_field_card_ids = [
+                    id for id, card_sprite in enumerate(self.field)
+                    if card_sprite.card.month == self.top_deck_card.card.month
+            ]
+            if valid_field_card_ids:
+                random_field_card = self.field[random.choice(valid_field_card_ids)]
+                self.field.remove(random_field_card)
+                self.player_point_piles[self.current_opponent].append(self.top_deck_card.card)
+                self.player_point_piles[self.current_opponent].append(random_field_card.card)
+            else:
+                self.field.append(self.top_deck_card)
+            self.top_deck_card = None
+            yaku_point, yakus = check_all_yakus(self.player_point_piles[self.current_opponent])
+            if yaku_point != self.player_yaku_points[self.current_opponent]:
+                
+                self.game_state = random.choice([KoikoiGameState.CHOOSE_HAND, KoikoiGameState.AI_GAME_END])
+                print(f'Player {self.current_opponent+1}',yaku_point, yakus, self.game_state)
+                if self.game_state == KoikoiGameState.AI_GAME_END:
+                    self.player_yaku_points[self.current_opponent], self.player_yakus[self.current_opponent] = yaku_point, yakus
+                    self.agari_popup_flag = True
+                    return
+            self.player_yaku_points[self.current_opponent], self.player_yakus[self.current_opponent] = yaku_point, yakus
+            self.game_state = KoikoiGameState.CHOOSE_HAND
+
+            # take if hand match
+            # draw card
+            # take if draw card match
+            # randomly choose agari or koikoi
+            # pass turn back
 
 class Background(pygame.sprite.Sprite):
     def __init__(self, image_file, location):
