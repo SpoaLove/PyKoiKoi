@@ -99,9 +99,18 @@ class Koikoi:
         render_group = pygame.sprite.RenderPlain()
         # top deck card (if exists)
         if self.top_deck_card:
-            pos = (int(display_width//2) + 350, int(display_height//2))
+            if self.game_state == KoikoiGameState.AI or self.game_state == KoikoiGameState.AI_2:
+                pos = (int(display_width//2) + 350, int(display_height // 2) - 90)
+            else:
+                pos = (int(display_width//2) + 350, int(display_height//2))
             self.top_deck_card.set_pos(pos)
             render_group.add(self.top_deck_card)
+        
+        # deck
+        if self.deck:
+            pos = (int(display_width//2) + 450, int(display_height//2))
+            deck_back = CardSprite(None, pos)
+            render_group.add(deck_back)
 
         # player 1 hand
         player_1_x = int((display_width - len(self.player_hands[self.current_player]) * 100) // 2)
