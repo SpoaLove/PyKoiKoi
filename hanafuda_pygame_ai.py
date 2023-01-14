@@ -1,40 +1,23 @@
 import pygame
 import os
-from hanafuda_card import Card, deck
+from hanafuda_card import deck
 from hanafuda_yaku import check_all_yakus
 from enum import Enum
 import random
 
-# Audio Methods
-# _sound_library = {}
-# def play_se(path):
-#   global _sound_library
-#   sound = _sound_library.get(path)
-#   if sound == None:
-#     canonicalized_path = path.replace('/', os.sep).replace('\\', os.sep)
-#     sound = pygame.mixer.Sound(canonicalized_path)
-#     _sound_library[path] = sound
-#   sound.play()
 
-# def play_bgm(path):
-#   global _sound_library
-#   sound = _sound_library.get(path)
-#   if sound == None:
-#     canonicalized_path = path.replace('/', os.sep).replace('\\', os.sep)
-#     sound = pygame.mixer.Sound(canonicalized_path)
-#     _sound_library[path] = sound
-#   sound.play(-1)
+# Audio Methods
 pygame.mixer.pre_init()
 pygame.mixer.init()
-# Audio Methods
+
 def play_se(path):
     pygame.mixer.music.load(path)
     pygame.mixer.music.play(0)
 
+
 def play_bgm(path):
     pygame.mixer.music.load(path)
     pygame.mixer.music.play(-1)
-
 
 display_width = 1200
 display_height = 800
@@ -88,6 +71,7 @@ class KoikoiGameState(Enum):
     AI_4 = 11
     AI_GAME_END = 12
     DRAW = 13
+
 
 class Koikoi:
     PLAYER_1 = 0
@@ -203,8 +187,8 @@ class Koikoi:
                 draw_popup = PopupSprite(['DRAW!', 'Both players ran out of cards without Agari!'])
                 render_group.add(draw_popup)
             else:
-                winner = self.game_state == 1 if KoikoiGameState.AI_GAME_END else 0
-                looser = self.game_state == 0 if KoikoiGameState.AI_GAME_END else 1
+                winner = 1 if self.game_state == KoikoiGameState.AI_GAME_END else 0
+                looser = 0 if self.game_state == KoikoiGameState.AI_GAME_END else 1
                 points = self.player_yaku_points[winner] * (2 if self.player_koikoied[looser] else 1)
                 agari_popup = PopupSprite([
                     f'Player {winner + 1} won!', 
@@ -216,6 +200,7 @@ class Koikoi:
         
         render_group.draw(self.display)
         pygame.display.update()
+
 
     def prepare_match(self, played_card):
         valid_field_card_ids = [
@@ -438,6 +423,7 @@ class Koikoi:
             self.reset()
             self.game_state = random.choice([KoikoiGameState.AI, KoikoiGameState.CHOOSE_HAND])
 
+
 class Background(pygame.sprite.Sprite):
     def __init__(self, image_file, location):
         pygame.sprite.Sprite.__init__(self)
@@ -445,17 +431,6 @@ class Background(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
 
-pygame.init()
-# play_bgm('sounds/03. 深層森林.mp3')
-
-gameDisplay = pygame.display.set_mode((display_width,display_height))
-koikoi_game = Koikoi(gameDisplay)
-pygame.display.set_caption('Py Koikoi')
-background = Background('other_images/tatami_bg.jpg', (0,0))
-black = (0,0,0)
-white = (255,255,255)
-
-clock = pygame.time.Clock()
 
 class PopupSprite(pygame.sprite.Sprite):
     def __init__(self, options) -> None:
@@ -482,12 +457,20 @@ class PopupSprite(pygame.sprite.Sprite):
         self.rect = popupRect
 
 
+# Initializations
+pygame.init()
+gameDisplay = pygame.display.set_mode((display_width,display_height))
+koikoi_game = Koikoi(gameDisplay)
+pygame.display.set_caption('Py Koikoi')
+background = Background('other_images/tatami_bg.jpg', (0,0))
+black = (0,0,0)
+white = (255,255,255)
+clock = pygame.time.Clock()
 koikoi_menu_popup = PopupSprite(['Koikoi', 'Agari'])
-
-
 score_font = pygame.font.SysFont(None, 60)
 
 
+# Main Game
 crashed = False
 while not crashed:
     for event in pygame.event.get():

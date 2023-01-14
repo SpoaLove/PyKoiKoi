@@ -97,6 +97,7 @@ def check_kasu(point_pile:List[Card]) -> int:
     kasu_count = len([card for card in point_pile if card.category == Category.KASU or card.category == Category.SAKAZUKI])
     return kasu_count - 9 if kasu_count >= 10 else 0
 
+# Edit this list to add/remove functions
 check_combo_functions = [
     check_goko,
     check_shiko,
@@ -109,7 +110,7 @@ check_combo_functions = [
     check_akatan,
     check_aotan,
     check_tanzaku,
-    check_tsukifuda,
+    # check_tsukifuda,
     check_kasu
 ]
 
