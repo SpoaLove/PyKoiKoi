@@ -79,9 +79,12 @@ class Koikoi:
 
     def __init__(self, display):
         self.display = display
+        self.update_yaku_point_flag = -1
+        self.total_scores = [0,0]
         self.reset()
         self.game_state = KoikoiGameState.CHOOSE_HAND
-        self.total_scores = [0,0]
+        
+        
         
     def reset(self):
         self.player_hands = [[], []]
@@ -99,6 +102,9 @@ class Koikoi:
         # sort hands fields and point piles
         self.sort_piles()
         # init yaku arrays
+        if self.update_yaku_point_flag != -1:
+            self.total_scores[self.update_yaku_point_flag] += self.player_yaku_points[self.update_yaku_point_flag]
+        self.update_yaku_point_flag = -1
         self.player_yakus = [[],[]]
         self.player_yaku_points = [0, 0]
         self.player_koikoied = [False, False]
@@ -106,6 +112,7 @@ class Koikoi:
         self.top_deck_card = None
         self.koikoi_menu_flag = False
         self.agari_popup_flag = False  
+        
         
     def sort_piles(self):
         self.player_hands[0].sort(key=lambda card_sprite: card_sprite.card.month)
@@ -194,8 +201,9 @@ class Koikoi:
                     f'Player {winner + 1} won!', 
                     f'Points: {points}',
                     f'Yaku:{self.player_yakus[winner]}'])
-                self.total_scores[winner] += points
-                self.player_yaku_points = [0,0]
+                
+                self.update_yaku_point_flag = winner
+                # self.player_yaku_points = [0, 0]
                 render_group.add(agari_popup)
         
         render_group.draw(self.display)

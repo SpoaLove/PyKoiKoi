@@ -1,4 +1,4 @@
-from typing import List, Callable, Tuple
+from typing import List, Callable, Tuple, Dict
 from hanafuda_card import Card, Month, Category, deck
 
 class Yaku:
@@ -134,7 +134,7 @@ def check_all_yakus(point_pile:List[Card]) -> Tuple[int, List[str]]:
 # print(check_all_yakus(deck[:10]))
 
 
-def point_pile_summary(point_pile:List[Card]):
+def point_pile_summary(point_pile:List[Card]) -> Dict[Category, int]:
     summary = {}
     for card in point_pile:
         if card.category == Category.SAKAZUKI:
@@ -150,7 +150,7 @@ def point_pile_summary(point_pile:List[Card]):
 
         elif card.category not in summary:
             summary[card.category] = 1
-            
+
         else:
             summary[card.category] += 1
     return summary
