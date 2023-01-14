@@ -1,7 +1,7 @@
 # PyKoiKoi
 A PyGame implementation of the koikoi traditional Japanese hanafuda card game.
 
-![Screenshot](screenshots/screenshot.png)
+![Screenshot](screenshots/screenshot_new.png)
 
 ## Dependencies
 - pygame

@@ -1,7 +1,7 @@
 import pygame
 import os
 from hanafuda_card import deck
-from hanafuda_yaku import check_all_yakus
+from hanafuda_yaku import check_all_yakus, point_pile_summary
 from enum import Enum
 import random
 
@@ -184,7 +184,7 @@ class Koikoi:
             render_group.add(koikoi_menu_popup)
         if self.agari_popup_flag:
             if self.game_state == self.game_state == KoikoiGameState.DRAW:
-                draw_popup = PopupSprite(['DRAW!', 'Both players ran out of cards without Agari!'])
+                draw_popup = PopupSprite(['~DRAW~', 'Restart!'])
                 render_group.add(draw_popup)
             else:
                 winner = 1 if self.game_state == KoikoiGameState.AI_GAME_END else 0
@@ -355,11 +355,15 @@ class Koikoi:
                 self.game_state = KoikoiGameState.GAME_END
             
         elif self.game_state == KoikoiGameState.AI:
-            # pick random hand
-            self.top_deck_card = random.choice(self.player_hands[self.current_opponent])
-            self.player_hands[self.current_opponent].remove(self.top_deck_card)
-            play_se('sounds/se_card_drop.mp3')
-            self.game_state = KoikoiGameState.AI_2
+            if len(self.player_hands[self.current_opponent]) == 0:
+                self.game_state = KoikoiGameState.DRAW
+                self.agari_popup_flag = True
+            else:
+                # pick random hand
+                self.top_deck_card = random.choice(self.player_hands[self.current_opponent])
+                self.player_hands[self.current_opponent].remove(self.top_deck_card)
+                play_se('sounds/se_card_drop.mp3')
+                self.game_state = KoikoiGameState.AI_2
 
         elif self.game_state == KoikoiGameState.AI_2:
             # take if hand match
@@ -468,6 +472,7 @@ white = (255,255,255)
 clock = pygame.time.Clock()
 koikoi_menu_popup = PopupSprite(['Koikoi', 'Agari'])
 score_font = pygame.font.SysFont(None, 60)
+summary_font = pygame.font.SysFont(None, 20)
 
 
 # Main Game
@@ -480,6 +485,8 @@ while not crashed:
             mouse_pos = pygame.mouse.get_pos()
             koikoi_game.mouse_event(mouse_pos)
     
+    # Render UI Texts
+    # scores
     scoreTextPlayer = score_font.render(f'Player Score: {koikoi_game.total_scores[koikoi_game.current_player]}', True, black)
     scoreTextRectsPlayer = scoreTextPlayer.get_rect()
     scoreTextRectsPlayer.center = (display_width-200, display_height-200)
@@ -488,10 +495,26 @@ while not crashed:
     scoreTextRectsAI = scoreTextAI.get_rect()
     scoreTextRectsAI.center = (display_width-200, 200)
 
+    # point pile summaries
+    point_pile_summary_player = point_pile_summary(koikoi_game.player_point_piles[koikoi_game.current_player])
+    point_pile_summary_text_player = summary_font.render(f'{point_pile_summary_player}', True, black)
+    point_pile_summary_text_rect_player = point_pile_summary_text_player.get_rect()
+    point_pile_summary_text_rect_player.center = (display_width-200, display_height-230)
+
+    point_pile_summary_AI = point_pile_summary(koikoi_game.player_point_piles[koikoi_game.current_opponent])
+    point_pile_summary_text_AI = summary_font.render(f'{point_pile_summary_AI}', True, black)
+    point_pile_summary_text_rect_AI = point_pile_summary_text_AI.get_rect()
+    point_pile_summary_text_rect_AI.center = (display_width-200, 230)
+
+
+
+
     gameDisplay.fill(white)
     gameDisplay.blit(background.image, background.rect)
     gameDisplay.blit(scoreTextPlayer, scoreTextRectsPlayer)
     gameDisplay.blit(scoreTextAI, scoreTextRectsAI)
+    gameDisplay.blit(point_pile_summary_text_player, point_pile_summary_text_rect_player)
+    gameDisplay.blit(point_pile_summary_text_AI, point_pile_summary_text_rect_AI)
     koikoi_game.display_field()
     
     clock.tick(60)

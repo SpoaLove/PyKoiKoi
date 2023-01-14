@@ -134,6 +134,23 @@ def check_all_yakus(point_pile:List[Card]) -> Tuple[int, List[str]]:
 # print(check_all_yakus(deck[:10]))
 
 
+def point_pile_summary(point_pile:List[Card]):
+    summary = {}
+    for card in point_pile:
+        if card.category == Category.SAKAZUKI:
+            if Category.TANE not in summary:
+                summary[Category.TANE] = 1
+            else:
+                summary[Category.TANE] += 1
+            
+            if Category.KASU not in summary:
+                summary[Category.KASU] = 1
+            else:
+                summary[Category.KASU] += 1
 
-
-
+        elif card.category not in summary:
+            summary[card.category] = 1
+            
+        else:
+            summary[card.category] += 1
+    return summary
